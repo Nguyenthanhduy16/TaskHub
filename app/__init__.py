@@ -1,2 +1,0 @@
-"""TaskHub API package."""
-
