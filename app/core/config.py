@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     app_version: str = Field(default="0.1.0", min_length=1)
     api_v1_prefix: str = Field(default="/api/v1", pattern=r"^/.+")
     log_level: str = Field(default="INFO", pattern=r"^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$")
+    database_url: str = Field(default="sqlite+aiosqlite:///./taskhub.db", min_length=1)
 
     model_config = SettingsConfigDict(
         env_file=".env",
