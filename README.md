@@ -15,6 +15,37 @@ TaskHub is a FastAPI task management API built as the sample app for the 9-day i
 - Logging configuration.
 - Health check endpoint.
 
+
+## Day 2 Scope
+
+- SQLAlchemy 2.x async engine and session factory.
+- Database session dependency for FastAPI routes/services.
+- Alembic configuration and initial schema migration.
+- Models and relationships for User, Workspace, WorkspaceMember, Project, Task, Label, TaskLabel, Comment, and Notification.
+- Generic `BaseRepository[T]` with async CRUD and pagination.
+- Repository test using SQLite async.
+
+## Database
+
+Default local database URL:
+
+```text
+sqlite+aiosqlite:///./taskhub.db
+```
+
+Override with `DATABASE_URL` in `.env` for MySQL/PostgreSQL later.
+
+Run migration SQL preview:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head --sql
+```
+
+Run migrations against the configured database:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+```
 ## Local Development
 
 Create a virtual environment, install dependencies, and run the app:
@@ -22,7 +53,7 @@ Create a virtual environment, install dependencies, and run the app:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
 
