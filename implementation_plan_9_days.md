@@ -92,7 +92,7 @@ Features bat buoc:
 ## Trang thai thuc hien
 
 - [x] Day 1 - Core Setup & Architecture
-- [ ] Day 2 - Database: SQLAlchemy 2.x & Alembic
+- [x] Day 2 - Database: SQLAlchemy 2.x & Alembic
 - [ ] Day 3 - Auth & User
 - [ ] Day 4 - Workspace & RBAC
 - [ ] Day 5 - Project Management

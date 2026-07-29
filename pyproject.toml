@@ -5,9 +5,12 @@ description = "TaskHub task management API"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "alembic>=1.13.0",
+    "aiosqlite>=0.20.0",
     "fastapi>=0.111.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
+    "sqlalchemy[asyncio]>=2.0.0",
     "uvicorn[standard]>=0.30.0",
 ]
 
@@ -31,6 +34,9 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+"alembic/versions/*.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.11"
 plugins = ["pydantic.mypy"]
@@ -39,3 +45,5 @@ ignore_missing_imports = true
 warn_return_any = true
 warn_unused_configs = true
 exclude = ["^pytest-cache-files-.*"]
+[tool.setuptools.packages.find]
+include = ["app*"]
