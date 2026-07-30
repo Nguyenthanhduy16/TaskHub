@@ -93,7 +93,7 @@ Features bat buoc:
 
 - [x] Day 1 - Core Setup & Architecture
 - [x] Day 2 - Database: SQLAlchemy 2.x & Alembic
-- [ ] Day 3 - Auth & User
+- [x] Day 3 - Auth & User
 - [ ] Day 4 - Workspace & RBAC
 - [ ] Day 5 - Project Management
 - [ ] Day 6 - Task Management
