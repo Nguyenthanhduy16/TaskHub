@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     api_v1_prefix: str = Field(default="/api/v1", pattern=r"^/.+")
     log_level: str = Field(default="INFO", pattern=r"^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$")
     database_url: str = Field(default="sqlite+aiosqlite:///./taskhub.db", min_length=1)
+    secret_key: str = Field(default="change-me-in-production", min_length=16)
+    access_token_expire_minutes: int = Field(default=30, ge=1)
+    refresh_token_expire_days: int = Field(default=7, ge=1)
 
     model_config = SettingsConfigDict(
         env_file=".env",

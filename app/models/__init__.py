@@ -4,6 +4,7 @@ from app.models.enums import ProjectStatus, TaskPriority, TaskStatus, UserRole, 
 from app.models.label import Label, TaskLabel
 from app.models.notification import Notification
 from app.models.project import Project
+from app.models.refresh_token import RefreshToken
 from app.models.task import Task
 from app.models.user import User
 from app.models.workspace import Workspace, WorkspaceMember
@@ -14,6 +15,7 @@ __all__ = [
     "Label",
     "Notification",
     "Project",
+    "RefreshToken",
     "ProjectStatus",
     "Task",
     "TaskLabel",
@@ -25,4 +27,3 @@ __all__ = [
     "WorkspaceMember",
     "WorkspaceRole",
 ]
-

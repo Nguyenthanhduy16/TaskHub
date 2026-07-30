@@ -25,6 +25,17 @@ TaskHub is a FastAPI task management API built as the sample app for the 9-day i
 - Generic `BaseRepository[T]` with async CRUD and pagination.
 - Repository test using SQLite async.
 
+
+## Day 3 Scope
+
+- User registration with unique normalized email.
+- Login with password verification and JWT access/refresh tokens.
+- Refresh token rotation with database-backed revocation.
+- Logout by revoking refresh tokens.
+- Bearer-protected `GET /api/v1/users/me` profile endpoint.
+- `PATCH /api/v1/users/me` profile updates.
+- `POST /api/v1/users/me/change-password` with refresh token revocation.
+- OpenAPI HTTP Bearer auth scheme for protected endpoints.
 ## Database
 
 Default local database URL:
@@ -34,6 +45,14 @@ sqlite+aiosqlite:///./taskhub.db
 ```
 
 Override with `DATABASE_URL` in `.env` for MySQL/PostgreSQL later.
+
+Auth-related settings:
+
+```text
+SECRET_KEY=change-me-in-production
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+```
 
 Run migration SQL preview:
 

@@ -11,6 +11,7 @@ from app.models.enums import UserRole
 if TYPE_CHECKING:
     from app.models.comment import Comment
     from app.models.notification import Notification
+    from app.models.refresh_token import RefreshToken
     from app.models.task import Task
     from app.models.workspace import Workspace, WorkspaceMember
 
@@ -42,3 +43,7 @@ class User(IntegerPrimaryKeyMixin, TimestampMixin, Base):
     )
     comments: Mapped[list[Comment]] = relationship(back_populates="author")
     notifications: Mapped[list[Notification]] = relationship(back_populates="user")
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
