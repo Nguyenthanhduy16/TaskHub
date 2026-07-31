@@ -52,6 +52,15 @@ TaskHub is a FastAPI task management API built as the sample app for the 9-day i
 - Archive project endpoint at `POST /api/v1/projects/{project_id}/archive`.
 - Workspace RBAC applies to project access: members can read projects, `OWNER`/`EDITOR` can create, update, archive, and delete projects.
 - Non-members cannot access projects in a workspace.
+
+## Day 6 Scope
+
+- Task CRUD under `/api/v1/projects/{project_id}/tasks` and `/api/v1/tasks/{task_id}`.
+- Task create/update supports assignee, status, priority, description, and due date.
+- Task list supports filtering by `status`, `priority`, and `assignee_id`.
+- Task list returns pagination metadata: `items`, `total`, `page`, `limit`, and `pages`.
+- Workspace RBAC applies to task access: members can read tasks, `OWNER`/`EDITOR` can create, update, and delete tasks.
+- Task assignees must be members of the task project workspace.
 ## Database
 
 Default local database URL:

@@ -46,7 +46,7 @@ class BaseRepository(Generic[ModelT]):
     ) -> Page[ModelT]:
         safe_page = max(page, 1)
         safe_limit = min(max(limit, 1), 100)
-        base_statement = statement or select(self.model_type)
+        base_statement = statement if statement is not None else select(self.model_type)
 
         total_statement = select(func.count()).select_from(base_statement.order_by(None).subquery())
         total = await self.session.scalar(total_statement)
