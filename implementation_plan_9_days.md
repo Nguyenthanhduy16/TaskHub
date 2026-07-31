@@ -94,8 +94,8 @@ Features bat buoc:
 - [x] Day 1 - Core Setup & Architecture
 - [x] Day 2 - Database: SQLAlchemy 2.x & Alembic
 - [x] Day 3 - Auth & User
-- [ ] Day 4 - Workspace & RBAC
-- [ ] Day 5 - Project Management
+- [x] Day 4 - Workspace & RBAC
+- [x] Day 5 - Project Management
 - [ ] Day 6 - Task Management
 - [ ] Day 7 - Labels, Comments, Cache, Notification
 - [ ] Day 8 - Review, Refactor & Optimization
@@ -106,3 +106,4 @@ Features bat buoc:
 - PDF goc la file scan, noi dung da duoc doc bang OCR nen co the co loi dau tieng Viet, nhung lich tren da bam theo cac module va feature chinh trong PDF.
 - Khi bat dau implement that, doc lai `info.pdf` neu can doi chieu endpoint hoac acceptance criteria.
 - Uu tien hoan thanh toi thieu features 1-8 va 11-12 trong PDF neu thoi gian bi cat giam.
+
