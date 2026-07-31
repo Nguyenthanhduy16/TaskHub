@@ -45,6 +45,13 @@ TaskHub is a FastAPI task management API built as the sample app for the 9-day i
 - RBAC for workspace roles: `OWNER`, `EDITOR`, and `VIEWER`.
 - Members can read workspaces, `OWNER`/`EDITOR` can update workspaces, and only `OWNER` can manage members or delete workspaces.
 - Workspace owner membership cannot be removed or downgraded through member management.
+
+## Day 5 Scope
+
+- Project CRUD under `/api/v1/workspaces/{workspace_id}/projects` and `/api/v1/projects/{project_id}`.
+- Archive project endpoint at `POST /api/v1/projects/{project_id}/archive`.
+- Workspace RBAC applies to project access: members can read projects, `OWNER`/`EDITOR` can create, update, archive, and delete projects.
+- Non-members cannot access projects in a workspace.
 ## Database
 
 Default local database URL:
@@ -98,3 +105,4 @@ pytest
 mypy .
 ruff check .
 ```
+
