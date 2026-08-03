@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     secret_key: str = Field(default="change-me-in-production", min_length=16)
     access_token_expire_minutes: int = Field(default=30, ge=1)
     refresh_token_expire_days: int = Field(default=7, ge=1)
+    redis_url: str = Field(default="redis://localhost:6379/0", min_length=1)
+    task_list_cache_ttl_seconds: int = Field(default=60, ge=1)
 
     model_config = SettingsConfigDict(
         env_file=".env",
