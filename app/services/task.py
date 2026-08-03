@@ -1,21 +1,25 @@
-from fastapi import status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import BackgroundTasks, status
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.cache import CacheClient, task_list_cache_key, task_list_cache_prefix
+from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.models.enums import TaskPriority, TaskStatus, WorkspaceRole
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
-from app.repositories.base import Page
 from app.repositories.project import ProjectRepository
 from app.repositories.task import TaskRepository
 from app.repositories.workspace import WorkspaceMemberRepository
-from app.schemas.tasks import TaskCreate, TaskUpdate
+from app.schemas.tasks import TaskCreate, TaskPage, TaskRead, TaskUpdate
+from app.services.notification import notify_task_assigned
 
 
 class TaskService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, cache: CacheClient) -> None:
         self.session = session
+        self.cache = cache
+        self.cache_ttl_seconds = get_settings().task_list_cache_ttl_seconds
         self.projects = ProjectRepository(session)
         self.tasks = TaskRepository(session)
         self.members = WorkspaceMemberRepository(session)
@@ -25,6 +29,8 @@ class TaskService:
         current_user: User,
         project_id: int,
         payload: TaskCreate,
+        background_tasks: BackgroundTasks,
+        session_factory: async_sessionmaker[AsyncSession],
     ) -> Task:
         project = await self._require_project(project_id)
         await self._require_role(
@@ -47,6 +53,16 @@ class TaskService:
         )
         await self.session.commit()
         await self.session.refresh(task)
+        await self.cache.delete_prefix(task_list_cache_prefix(project.id))
+        assignee_id = task.assignee_id
+        if assignee_id is not None:
+            background_tasks.add_task(
+                notify_task_assigned,
+                session_factory,
+                assignee_id,
+                task.id,
+                task.title,
+            )
         return task
 
     async def list_tasks(
@@ -59,12 +75,25 @@ class TaskService:
         assignee_id: int | None = None,
         page: int = 1,
         limit: int = 20,
-    ) -> Page[Task]:
+    ) -> TaskPage:
         project = await self._require_project(project_id)
         await self._require_membership(project.workspace_id, current_user.id)
         if assignee_id is not None:
             await self._require_assignee_member(project.workspace_id, assignee_id)
-        return await self.tasks.list_for_project(
+
+        cache_key = task_list_cache_key(
+            project_id,
+            status=task_status.value if task_status is not None else None,
+            priority=priority.value if priority is not None else None,
+            assignee_id=assignee_id,
+            page=page,
+            limit=limit,
+        )
+        cached = await self.cache.get(cache_key)
+        if cached is not None:
+            return TaskPage.model_validate_json(cached)
+
+        task_page = await self.tasks.list_for_project(
             project_id,
             status=task_status,
             priority=priority,
@@ -72,6 +101,19 @@ class TaskService:
             page=page,
             limit=limit,
         )
+        response = TaskPage(
+            items=[TaskRead.model_validate(task) for task in task_page.items],
+            total=task_page.total,
+            page=task_page.page,
+            limit=task_page.limit,
+            pages=task_page.pages,
+        )
+        await self.cache.set(
+            cache_key,
+            response.model_dump_json(),
+            ttl_seconds=self.cache_ttl_seconds,
+        )
+        return response
 
     async def get_task(self, current_user: User, task_id: int) -> Task:
         task = await self._require_task(task_id)
@@ -84,6 +126,8 @@ class TaskService:
         current_user: User,
         task_id: int,
         payload: TaskUpdate,
+        background_tasks: BackgroundTasks,
+        session_factory: async_sessionmaker[AsyncSession],
     ) -> Task:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
@@ -101,6 +145,7 @@ class TaskService:
             task.title = title.strip()
         if "description" in updates:
             task.description = updates["description"]
+        previous_assignee_id = task.assignee_id
         if "assignee_id" in updates:
             task.assignee_id = updates["assignee_id"]
         if "status" in updates:
@@ -112,6 +157,16 @@ class TaskService:
 
         await self.session.commit()
         await self.session.refresh(task)
+        await self.cache.delete_prefix(task_list_cache_prefix(project.id))
+        assignee_id = task.assignee_id
+        if assignee_id is not None and assignee_id != previous_assignee_id:
+            background_tasks.add_task(
+                notify_task_assigned,
+                session_factory,
+                assignee_id,
+                task.id,
+                task.title,
+            )
         return task
 
     async def delete_task(self, current_user: User, task_id: int) -> None:
@@ -124,6 +179,7 @@ class TaskService:
         )
         await self.tasks.delete(task)
         await self.session.commit()
+        await self.cache.delete_prefix(task_list_cache_prefix(project.id))
 
     async def _require_project(self, project_id: int) -> Project:
         project = await self.projects.get(project_id)

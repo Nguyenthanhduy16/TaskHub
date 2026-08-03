@@ -97,7 +97,7 @@ Features bat buoc:
 - [x] Day 4 - Workspace & RBAC
 - [x] Day 5 - Project Management
 - [x] Day 6 - Task Management
-- [ ] Day 7 - Labels, Comments, Cache, Notification
+- [x] Day 7 - Labels, Comments, Cache, Notification
 - [ ] Day 8 - Review, Refactor & Optimization
 - [ ] Day 9 - Final Hardening, Docker, README
 

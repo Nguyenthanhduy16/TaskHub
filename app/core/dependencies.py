@@ -1,13 +1,14 @@
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.cache import CacheClient
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppError
-from app.db.session import get_db_session
+from app.db.session import AsyncSessionLocal, get_db_session
 from app.models.user import User
 from app.services.auth import decode_access_token, require_int_subject
 
@@ -23,9 +24,22 @@ def get_app_settings() -> Settings:
     return get_settings()
 
 
+def get_cache_client(request: Request) -> CacheClient:
+    return request.app.state.cache_client  # type: ignore[no-any-return]
+
+
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    return AsyncSessionLocal
+
+
 SessionDependency = Annotated[AsyncSession, Depends(get_session)]
 SettingsDependency = Annotated[Settings, Depends(get_app_settings)]
 AccessTokenDependency = Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)]
+CacheDependency = Annotated[CacheClient, Depends(get_cache_client)]
+SessionFactoryDependency = Annotated[
+    async_sessionmaker[AsyncSession],
+    Depends(get_session_factory),
+]
 
 
 async def get_current_user(
