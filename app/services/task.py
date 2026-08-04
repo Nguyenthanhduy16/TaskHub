@@ -12,6 +12,7 @@ from app.repositories.project import ProjectRepository
 from app.repositories.task import TaskRepository
 from app.repositories.workspace import WorkspaceMemberRepository
 from app.schemas.tasks import TaskCreate, TaskPage, TaskRead, TaskUpdate
+from app.services.access import WorkspaceAccessPolicy
 from app.services.notification import notify_task_assigned
 
 
@@ -23,6 +24,7 @@ class TaskService:
         self.projects = ProjectRepository(session)
         self.tasks = TaskRepository(session)
         self.members = WorkspaceMemberRepository(session)
+        self.access = WorkspaceAccessPolicy(self.members)
 
     async def create_task(
         self,
@@ -33,7 +35,7 @@ class TaskService:
         session_factory: async_sessionmaker[AsyncSession],
     ) -> Task:
         project = await self._require_project(project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -77,7 +79,7 @@ class TaskService:
         limit: int = 20,
     ) -> TaskPage:
         project = await self._require_project(project_id)
-        await self._require_membership(project.workspace_id, current_user.id)
+        await self.access.require_membership(project.workspace_id, current_user.id)
         if assignee_id is not None:
             await self._require_assignee_member(project.workspace_id, assignee_id)
 
@@ -118,7 +120,7 @@ class TaskService:
     async def get_task(self, current_user: User, task_id: int) -> Task:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
-        await self._require_membership(project.workspace_id, current_user.id)
+        await self.access.require_membership(project.workspace_id, current_user.id)
         return task
 
     async def update_task(
@@ -131,7 +133,7 @@ class TaskService:
     ) -> Task:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -172,7 +174,7 @@ class TaskService:
     async def delete_task(self, current_user: User, task_id: int) -> None:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -200,35 +202,6 @@ class TaskService:
                 code="task_not_found",
             )
         return task
-
-    async def _require_membership(self, workspace_id: int, user_id: int) -> None:
-        membership = await self.members.get_member(workspace_id, user_id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )
-
-    async def _require_role(
-        self,
-        workspace_id: int,
-        user_id: int,
-        allowed_roles: set[WorkspaceRole],
-    ) -> None:
-        membership = await self.members.get_member(workspace_id, user_id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )
-        if membership.role not in allowed_roles:
-            raise AppError(
-                "Workspace action is not permitted.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_permission_denied",
-            )
 
     async def _require_assignee_member(self, workspace_id: int, user_id: int) -> None:
         membership = await self.members.get_member(workspace_id, user_id)

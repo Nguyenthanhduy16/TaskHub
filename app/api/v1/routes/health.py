@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import Depends
 
+from app.api.openapi import documented_router
 from app.core.config import Settings
 from app.core.dependencies import get_app_settings
 from app.schemas.health import HealthCheckResponse
 
-router = APIRouter()
+router = documented_router()
 SettingsDependency = Annotated[Settings, Depends(get_app_settings)]
 
 

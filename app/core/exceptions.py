@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from fastapi import Request, status
@@ -6,6 +7,8 @@ from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.schemas.errors import ErrorDetail, ErrorResponse
+
+logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
@@ -62,8 +65,18 @@ async def validation_error_handler(_: Request, exc: Exception) -> Response:
         raise exc
 
     return _error_response(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         code="validation_error",
         message="Request validation failed.",
         details={"errors": exc.errors()},
+    )
+
+
+async def unexpected_error_handler(request: Request, exc: Exception) -> Response:
+    request_id = getattr(request.state, "request_id", None)
+    logger.exception("Unhandled application error request_id=%s", request_id, exc_info=exc)
+    return _error_response(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        code="internal_server_error",
+        message="An unexpected server error occurred.",
     )

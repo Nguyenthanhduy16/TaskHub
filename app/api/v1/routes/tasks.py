@@ -1,7 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, status
+from fastapi import BackgroundTasks, Depends, Query, Response, status
 
+from app.api.openapi import documented_router
 from app.core.dependencies import (
     CacheDependency,
     SessionDependency,
@@ -13,7 +14,7 @@ from app.models.user import User
 from app.schemas.tasks import TaskCreate, TaskPage, TaskRead, TaskUpdate
 from app.services.task import TaskService
 
-router = APIRouter()
+router = documented_router()
 CurrentUserDependency = Annotated[User, Depends(get_current_user)]
 
 

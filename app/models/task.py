@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, IntegerPrimaryKeyMixin, TimestampMixin
@@ -19,6 +19,11 @@ if TYPE_CHECKING:
 
 class Task(IntegerPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "tasks"
+    __table_args__ = (
+        Index("ix_tasks_project_status", "project_id", "status"),
+        Index("ix_tasks_project_priority", "project_id", "priority"),
+        Index("ix_tasks_project_assignee", "project_id", "assignee_id"),
+    )
 
     project_id: Mapped[int] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),

@@ -12,6 +12,7 @@ from app.repositories.project import ProjectRepository
 from app.repositories.task import TaskRepository
 from app.repositories.workspace import WorkspaceMemberRepository
 from app.schemas.comments import CommentCreate
+from app.services.access import WorkspaceAccessPolicy
 
 
 class CommentService:
@@ -21,11 +22,12 @@ class CommentService:
         self.tasks = TaskRepository(session)
         self.comments = CommentRepository(session)
         self.members = WorkspaceMemberRepository(session)
+        self.access = WorkspaceAccessPolicy(self.members)
 
     async def list_comments(self, current_user: User, task_id: int) -> list[Comment]:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
-        await self._require_membership(project.workspace_id, current_user.id)
+        await self.access.require_membership(project.workspace_id, current_user.id)
         return await self.comments.list_for_task(task_id)
 
     async def add_comment(
@@ -36,7 +38,7 @@ class CommentService:
     ) -> Comment:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
-        await self._require_membership(project.workspace_id, current_user.id)
+        await self.access.require_membership(project.workspace_id, current_user.id)
         comment = await self.comments.create(
             task_id=task.id,
             author_id=current_user.id,
@@ -50,13 +52,10 @@ class CommentService:
         comment = await self._require_comment(comment_id)
         task = await self._require_task(comment.task_id)
         project = await self._require_project(task.project_id)
-        membership = await self.members.get_member(project.workspace_id, current_user.id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )
+        membership = await self.access.require_membership(
+            project.workspace_id,
+            current_user.id,
+        )
         is_author = comment.author_id == current_user.id
         is_moderator = membership.role in {WorkspaceRole.OWNER, WorkspaceRole.EDITOR}
         if not is_author and not is_moderator:
@@ -97,12 +96,3 @@ class CommentService:
                 code="comment_not_found",
             )
         return comment
-
-    async def _require_membership(self, workspace_id: int, user_id: int) -> None:
-        membership = await self.members.get_member(workspace_id, user_id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )

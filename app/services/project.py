@@ -8,6 +8,7 @@ from app.models.user import User
 from app.repositories.project import ProjectRepository
 from app.repositories.workspace import WorkspaceMemberRepository, WorkspaceRepository
 from app.schemas.projects import ProjectCreate, ProjectUpdate
+from app.services.access import WorkspaceAccessPolicy
 
 
 class ProjectService:
@@ -16,6 +17,7 @@ class ProjectService:
         self.projects = ProjectRepository(session)
         self.workspaces = WorkspaceRepository(session)
         self.members = WorkspaceMemberRepository(session)
+        self.access = WorkspaceAccessPolicy(self.members)
 
     async def create_project(
         self,
@@ -24,7 +26,7 @@ class ProjectService:
         payload: ProjectCreate,
     ) -> Project:
         await self._require_workspace(workspace_id)
-        await self._require_role(
+        await self.access.require_role(
             workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -41,12 +43,12 @@ class ProjectService:
 
     async def list_projects(self, current_user: User, workspace_id: int) -> list[Project]:
         await self._require_workspace(workspace_id)
-        await self._require_membership(workspace_id, current_user.id)
+        await self.access.require_membership(workspace_id, current_user.id)
         return await self.projects.list_for_workspace(workspace_id)
 
     async def get_project(self, current_user: User, project_id: int) -> Project:
         project = await self._require_project(project_id)
-        await self._require_membership(project.workspace_id, current_user.id)
+        await self.access.require_membership(project.workspace_id, current_user.id)
         return project
 
     async def update_project(
@@ -56,7 +58,7 @@ class ProjectService:
         payload: ProjectUpdate,
     ) -> Project:
         project = await self._require_project(project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -73,7 +75,7 @@ class ProjectService:
 
     async def archive_project(self, current_user: User, project_id: int) -> Project:
         project = await self._require_project(project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -85,7 +87,7 @@ class ProjectService:
 
     async def delete_project(self, current_user: User, project_id: int) -> None:
         project = await self._require_project(project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -111,32 +113,3 @@ class ProjectService:
                 code="project_not_found",
             )
         return project
-
-    async def _require_membership(self, workspace_id: int, user_id: int) -> None:
-        membership = await self.members.get_member(workspace_id, user_id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )
-
-    async def _require_role(
-        self,
-        workspace_id: int,
-        user_id: int,
-        allowed_roles: set[WorkspaceRole],
-    ) -> None:
-        membership = await self.members.get_member(workspace_id, user_id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )
-        if membership.role not in allowed_roles:
-            raise AppError(
-                "Workspace action is not permitted.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_permission_denied",
-            )

@@ -1,13 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import Depends, Response, status
 
+from app.api.openapi import documented_router
 from app.core.dependencies import SessionDependency, get_current_user
 from app.models.user import User
 from app.schemas.projects import ProjectCreate, ProjectRead, ProjectUpdate
 from app.services.project import ProjectService
 
-router = APIRouter()
+router = documented_router()
 CurrentUserDependency = Annotated[User, Depends(get_current_user)]
 
 

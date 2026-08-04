@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Response, status
+from fastapi import Response, status
 
+from app.api.openapi import documented_router
 from app.core.dependencies import SessionDependency, SettingsDependency
 from app.schemas.auth import LogoutRequest, RefreshTokenRequest, TokenPair, UserCreate, UserLogin
 from app.schemas.users import UserRead
 from app.services.auth import AuthService
 
-router = APIRouter()
+router = documented_router()
 
 
 @router.post(
