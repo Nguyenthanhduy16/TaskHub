@@ -13,6 +13,7 @@ from app.repositories.task import TaskRepository
 from app.repositories.task_label import TaskLabelRepository
 from app.repositories.workspace import WorkspaceMemberRepository
 from app.schemas.labels import LabelCreate, LabelUpdate
+from app.services.access import WorkspaceAccessPolicy
 
 
 class LabelService:
@@ -23,6 +24,7 @@ class LabelService:
         self.labels = LabelRepository(session)
         self.task_labels = TaskLabelRepository(session)
         self.members = WorkspaceMemberRepository(session)
+        self.access = WorkspaceAccessPolicy(self.members)
 
     async def create_label(
         self,
@@ -31,7 +33,7 @@ class LabelService:
         payload: LabelCreate,
     ) -> Label:
         project = await self._require_project(project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -47,7 +49,7 @@ class LabelService:
 
     async def list_labels(self, current_user: User, project_id: int) -> list[Label]:
         project = await self._require_project(project_id)
-        await self._require_membership(project.workspace_id, current_user.id)
+        await self.access.require_membership(project.workspace_id, current_user.id)
         return await self.labels.list_for_project(project_id)
 
     async def update_label(
@@ -58,7 +60,7 @@ class LabelService:
     ) -> Label:
         label = await self._require_label(label_id)
         project = await self._require_project(label.project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -77,7 +79,7 @@ class LabelService:
     async def delete_label(self, current_user: User, label_id: int) -> None:
         label = await self._require_label(label_id)
         project = await self._require_project(label.project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -88,13 +90,13 @@ class LabelService:
     async def list_task_labels(self, current_user: User, task_id: int) -> list[Label]:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
-        await self._require_membership(project.workspace_id, current_user.id)
+        await self.access.require_membership(project.workspace_id, current_user.id)
         return await self.task_labels.list_labels_for_task(task_id)
 
     async def attach_label(self, current_user: User, task_id: int, label_id: int) -> Label:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -113,7 +115,7 @@ class LabelService:
     async def detach_label(self, current_user: User, task_id: int, label_id: int) -> None:
         task = await self._require_task(task_id)
         project = await self._require_project(task.project_id)
-        await self._require_role(
+        await self.access.require_role(
             project.workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -150,32 +152,3 @@ class LabelService:
                 code="label_not_found",
             )
         return label
-
-    async def _require_membership(self, workspace_id: int, user_id: int) -> None:
-        membership = await self.members.get_member(workspace_id, user_id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )
-
-    async def _require_role(
-        self,
-        workspace_id: int,
-        user_id: int,
-        allowed_roles: set[WorkspaceRole],
-    ) -> None:
-        membership = await self.members.get_member(workspace_id, user_id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )
-        if membership.role not in allowed_roles:
-            raise AppError(
-                "Workspace action is not permitted.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_permission_denied",
-            )

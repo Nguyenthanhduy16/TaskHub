@@ -1,7 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import Depends, Response, status
 
+from app.api.openapi import documented_router
 from app.core.dependencies import SessionDependency, get_current_user
 from app.models.user import User
 from app.schemas.workspaces import (
@@ -14,7 +15,7 @@ from app.schemas.workspaces import (
 )
 from app.services.workspace import WorkspaceService
 
-router = APIRouter()
+router = documented_router()
 CurrentUserDependency = Annotated[User, Depends(get_current_user)]
 
 

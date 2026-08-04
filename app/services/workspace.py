@@ -15,6 +15,7 @@ from app.schemas.workspaces import (
     WorkspaceMemberRoleUpdate,
     WorkspaceUpdate,
 )
+from app.services.access import WorkspaceAccessPolicy
 
 
 class WorkspaceService:
@@ -23,6 +24,7 @@ class WorkspaceService:
         self.users = UserRepository(session)
         self.workspaces = WorkspaceRepository(session)
         self.members = WorkspaceMemberRepository(session)
+        self.access = WorkspaceAccessPolicy(self.members)
 
     async def create_workspace(self, current_user: User, payload: WorkspaceCreate) -> Workspace:
         workspace = await self.workspaces.create(
@@ -43,7 +45,7 @@ class WorkspaceService:
 
     async def get_workspace(self, current_user: User, workspace_id: int) -> Workspace:
         workspace = await self._require_workspace(workspace_id)
-        await self._require_membership(workspace_id, current_user.id)
+        await self.access.require_membership(workspace_id, current_user.id)
         return workspace
 
     async def update_workspace(
@@ -53,7 +55,7 @@ class WorkspaceService:
         payload: WorkspaceUpdate,
     ) -> Workspace:
         workspace = await self._require_workspace(workspace_id)
-        await self._require_role(
+        await self.access.require_role(
             workspace_id,
             current_user.id,
             {WorkspaceRole.OWNER, WorkspaceRole.EDITOR},
@@ -68,13 +70,13 @@ class WorkspaceService:
 
     async def delete_workspace(self, current_user: User, workspace_id: int) -> None:
         workspace = await self._require_workspace(workspace_id)
-        await self._require_role(workspace_id, current_user.id, {WorkspaceRole.OWNER})
+        await self.access.require_role(workspace_id, current_user.id, {WorkspaceRole.OWNER})
         await self.workspaces.delete(workspace)
         await self.session.commit()
 
     async def list_members(self, current_user: User, workspace_id: int) -> list[WorkspaceMember]:
         await self._require_workspace(workspace_id)
-        await self._require_membership(workspace_id, current_user.id)
+        await self.access.require_membership(workspace_id, current_user.id)
         return await self.members.list_for_workspace(workspace_id)
 
     async def invite_member(
@@ -84,7 +86,7 @@ class WorkspaceService:
         payload: WorkspaceInviteRequest,
     ) -> WorkspaceMember:
         await self._require_workspace(workspace_id)
-        await self._require_role(workspace_id, current_user.id, {WorkspaceRole.OWNER})
+        await self.access.require_role(workspace_id, current_user.id, {WorkspaceRole.OWNER})
         role = _require_assignable_member_role(payload.role)
 
         invited_user = await self.users.get_by_email(payload.email.strip().lower())
@@ -120,10 +122,10 @@ class WorkspaceService:
         payload: WorkspaceMemberRoleUpdate,
     ) -> WorkspaceMember:
         workspace = await self._require_workspace(workspace_id)
-        await self._require_role(workspace_id, current_user.id, {WorkspaceRole.OWNER})
+        await self.access.require_role(workspace_id, current_user.id, {WorkspaceRole.OWNER})
         role = _require_assignable_member_role(payload.role)
 
-        membership = await self._require_membership(workspace_id, user_id)
+        membership = await self.access.require_membership(workspace_id, user_id)
         if membership.user_id == workspace.owner_id:
             raise_cannot_modify_owner()
 
@@ -134,8 +136,8 @@ class WorkspaceService:
 
     async def remove_member(self, current_user: User, workspace_id: int, user_id: int) -> None:
         workspace = await self._require_workspace(workspace_id)
-        await self._require_role(workspace_id, current_user.id, {WorkspaceRole.OWNER})
-        membership = await self._require_membership(workspace_id, user_id)
+        await self.access.require_role(workspace_id, current_user.id, {WorkspaceRole.OWNER})
+        membership = await self.access.require_membership(workspace_id, user_id)
         if membership.user_id == workspace.owner_id:
             raise_cannot_modify_owner()
         await self.members.delete(membership)
@@ -150,32 +152,6 @@ class WorkspaceService:
                 code="workspace_not_found",
             )
         return workspace
-
-    async def _require_membership(self, workspace_id: int, user_id: int) -> WorkspaceMember:
-        membership = await self.members.get_member(workspace_id, user_id)
-        if membership is None:
-            raise AppError(
-                "Workspace access is denied.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_access_denied",
-            )
-        return membership
-
-    async def _require_role(
-        self,
-        workspace_id: int,
-        user_id: int,
-        allowed_roles: set[WorkspaceRole],
-    ) -> WorkspaceMember:
-        membership = await self._require_membership(workspace_id, user_id)
-        if membership.role not in allowed_roles:
-            raise AppError(
-                "Workspace action is not permitted.",
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="workspace_permission_denied",
-            )
-        return membership
-
 
 def _require_assignable_member_role(role: WorkspaceRole) -> WorkspaceRole:
     if role == WorkspaceRole.OWNER:

@@ -61,6 +61,22 @@ TaskHub is a FastAPI task management API built as the sample app for the 9-day i
 - Task list returns pagination metadata: `items`, `total`, `page`, `limit`, and `pages`.
 - Workspace RBAC applies to task access: members can read tasks, `OWNER`/`EDITOR` can create, update, and delete tasks.
 - Task assignees must be members of the task project workspace.
+
+## Day 7 Scope
+
+- Project label CRUD and task label assignment/removal.
+- Task comment creation, listing, and permission-aware deletion.
+- Redis cache-aside behavior for filtered task lists with write invalidation.
+- Background notifications when a task is assigned to a workspace member.
+
+## Day 8 Scope
+
+- Request context middleware with request IDs, timing, request logging, and security headers.
+- Uniform JSON responses for application, HTTP, validation, and unexpected errors.
+- Documented OpenAPI tags, HTTP Bearer authentication, and shared error response schemas.
+- Centralized workspace access policy reused by workspace, project, task, label, and comment services.
+- Composite database indexes for task filters by status, priority, and assignee within a project.
+
 ## Database
 
 Default local database URL:
@@ -77,6 +93,8 @@ Auth-related settings:
 SECRET_KEY=change-me-in-production
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
+REDIS_URL=redis://localhost:6379/0
+TASK_LIST_CACHE_TTL_SECONDS=60
 ```
 
 Run migration SQL preview:

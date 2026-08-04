@@ -98,7 +98,7 @@ Features bat buoc:
 - [x] Day 5 - Project Management
 - [x] Day 6 - Task Management
 - [x] Day 7 - Labels, Comments, Cache, Notification
-- [ ] Day 8 - Review, Refactor & Optimization
+- [x] Day 8 - Review, Refactor & Optimization
 - [ ] Day 9 - Final Hardening, Docker, README
 
 ## Ghi chu tiep tuc
